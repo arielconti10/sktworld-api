@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\User;
 use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Http\Request;
-use JWTAuth;
+use Tymon\JWTAuth\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Illuminate\Foundation\Auth\RegistersUsers;
 use Illuminate\Support\Facades\Validator;
@@ -16,17 +16,34 @@ class AuthController extends Controller
     use RegistersUsers;
     use ValidatesRequests;
 
-
-    protected function validator($request)
+    public function __construct()
     {
-        return Validator::make($request, [
+        $this->middleware('guest');
+    }
+
+    /**
+     * Create a new user instance after a valid registration.
+     *
+     * @param  array  $data
+     * @return User
+     */
+    protected function validator(array $data)
+    {
+        return Validator::make($data, [
             'name' => 'required|max:255',
             'email' => 'required|email|max:255|unique:users',
             'password' => 'required|min:6|confirmed',
         ]);
+
     }
 
 
+    /**
+     * Attempt to log the user into the application.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function login(Request $request){
         $credentials = $request->only('email', 'password');
         try{
@@ -42,17 +59,37 @@ class AuthController extends Controller
         return response()->json(compact('token'));
     }
 
+    /**
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function getAuthUser(Request $request){
         $user = JWTAuth::toUser($request->token);
         return response()->json(['result' => $user]);
     }
 
+    /**
+     * @param Request $request
+     * @return mixed
+     */
     public function create(Request $request){
         return User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => bcrypt($request->password),
         ]);
+    }
+
+    /**
+     * The user has been registered.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  mixed  $user
+     * @return mixed
+     */
+    protected function registered(Request $request, $user)
+    {
+        return $user;
     }
 
     /**
